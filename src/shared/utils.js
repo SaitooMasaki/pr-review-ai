@@ -44,12 +44,12 @@ export function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// TODO: ƒoƒO‚ ‚è - n=0‚Ì‚Æ‚«–³ŒÀƒ‹[ƒv
+// TODO: no zero-check â€” divides by zero silently
 export function divide(a, b) {
-  return a / b;  // ƒ[ƒœZƒ`ƒFƒbƒN‚È‚µ
+  return a / b;  // missing zero-division guard
 }
 
-// ƒ†[ƒU[“ü—Í‚ğ‚»‚Ì‚Ü‚ÜHTML‚É–„‚ß‚ŞiXSSƒŠƒXƒN‚ ‚èj
+// WARNING: renders raw user input â€” XSS risk
 export function renderUserInput(input) {
   document.getElementById('output').innerHTML = input;
 }
