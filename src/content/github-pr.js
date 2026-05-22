@@ -13,7 +13,7 @@ import {
 import { renderLoading, renderReview, renderError } from './panel-renderer.js';
 import { canUseReview, incrementCount } from '../shared/counter.js';
 import { storageGet } from '../shared/storage.js';
-import { STORAGE_KEYS } from '../shared/constants.js';
+import { STORAGE_KEYS, MODELS, DEFAULT_MODEL } from '../shared/constants.js';
 
 // ===== エントリーポイント =====
 
@@ -57,9 +57,11 @@ async function onReviewClick() {
     return;
   }
 
-  // APIキー確認
-  const data = await storageGet([STORAGE_KEYS.API_KEY]);
-  const apiKey = data[STORAGE_KEYS.API_KEY];
+  // APIキーとモデル設定を取得
+  const data = await storageGet([STORAGE_KEYS.API_KEY, STORAGE_KEYS.SETTINGS]);
+  const apiKey  = data[STORAGE_KEYS.API_KEY];
+  const modelKey = data[STORAGE_KEYS.SETTINGS]?.model ?? DEFAULT_MODEL;
+  const modelId  = MODELS[modelKey]?.id ?? MODELS[DEFAULT_MODEL].id;
   if (!apiKey) {
     alert('Please set your Anthropic API key in the extension popup first.');
     return;
@@ -91,7 +93,7 @@ async function onReviewClick() {
     // Anthropic API呼び出し（service worker経由）
     const result = await chrome.runtime.sendMessage({
       type: 'CALL_ANTHROPIC',
-      payload: { apiKey, systemPrompt, userPrompt },
+      payload: { apiKey, systemPrompt, userPrompt, modelId },
     });
 
     if (!result.ok) throw new Error(result.error);

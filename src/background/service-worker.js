@@ -10,10 +10,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-async function callAnthropicAPI({ apiKey, systemPrompt, userPrompt }) {
+const FALLBACK_MODEL = 'claude-haiku-4-5';
+
+async function callAnthropicAPI({ apiKey, systemPrompt, userPrompt, modelId }) {
   if (!apiKey) {
     throw new Error('Anthropic API key is not set. Please add it in the extension popup.');
   }
+
+  const model = modelId || FALLBACK_MODEL;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -24,7 +28,7 @@ async function callAnthropicAPI({ apiKey, systemPrompt, userPrompt }) {
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5',
+      model,
       max_tokens: 4096,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],

@@ -107,6 +107,27 @@
       </select>
     </div>
 
+    <div class="section">
+      <label class="section-label">AI Model</label>
+      <div class="model-cards">
+        <label class="model-card" id="card-haiku">
+          <input type="radio" name="model" value="haiku" />
+          <div class="model-card-body">
+            <span class="model-card-title">⚡ Haiku</span>
+            <span class="model-card-desc">Fast &amp; cheap · Good for most PRs</span>
+          </div>
+        </label>
+        <label class="model-card" id="card-sonnet">
+          <input type="radio" name="model" value="sonnet" />
+          <div class="model-card-body">
+            <span class="model-card-title">🎯 Sonnet</span>
+            <span class="model-card-desc">Precise · Best for security reviews</span>
+          </div>
+        </label>
+      </div>
+      <p class="section-hint" id="model-hint"></p>
+    </div>
+
   </div>
 
   <script src="../../dist/popup.js"></script>
