@@ -2,6 +2,7 @@
 // GitHub PRページ（/*/pull/*）に注入される
 
 import { extractDiff, extractPRMeta, truncateDiff } from './diff-extractor.js';
+import { preScan, buildPreScanBlock } from './security-prescanner.js';
 import {
   injectReviewButton,
   injectSidePanel,
@@ -13,7 +14,7 @@ import {
 import { renderLoading, renderReview, renderError } from './panel-renderer.js';
 import { canUseReview, incrementCount } from '../shared/counter.js';
 import { storageGet } from '../shared/storage.js';
-import { STORAGE_KEYS } from '../shared/constants.js';
+import { STORAGE_KEYS, MODELS, DEFAULT_MODEL } from '../shared/constants.js';
 
 // ===== エントリーポイント =====
 
@@ -57,9 +58,11 @@ async function onReviewClick() {
     return;
   }
 
-  // APIキー確認
-  const data = await storageGet([STORAGE_KEYS.API_KEY]);
-  const apiKey = data[STORAGE_KEYS.API_KEY];
+  // APIキーとモデル設定を取得
+  const data = await storageGet([STORAGE_KEYS.API_KEY, STORAGE_KEYS.SETTINGS]);
+  const apiKey  = data[STORAGE_KEYS.API_KEY];
+  const modelKey = data[STORAGE_KEYS.SETTINGS]?.model ?? DEFAULT_MODEL;
+  const modelId  = MODELS[modelKey]?.id ?? MODELS[DEFAULT_MODEL].id;
   if (!apiKey) {
     alert('Please set your Anthropic API key in the extension popup first.');
     return;
@@ -78,17 +81,24 @@ async function onReviewClick() {
     const meta     = extractPRMeta();
 
     if (diffData.length === 0) {
-      renderError(panelBody, 'No diff found. Make sure the "Files changed" tab is visible and files are expanded.');
+      const hint = location.href.includes('/files')
+        ? 'Files are collapsed — click "Load diff" or expand each file, then try again.'
+        : 'Please click the "Files changed" tab first, then click AI Review.';
+      renderError(panelBody, `No diff found. ${hint}`);
       return;
     }
 
-    // プロンプト構築
-    const { systemPrompt, userPrompt } = buildPrompts(meta, diffData);
+    // 静的プリスキャン（AIに渡す前に危険パターンを機械的に検出）
+    const preScanFindings = preScan(diffData);
+    const preScanBlock    = buildPreScanBlock(preScanFindings);
+
+    // プロンプト構築（ファイルリストを明示して見落とし防止）
+    const { systemPrompt, userPrompt } = buildPrompts(meta, diffData, preScanBlock);
 
     // Anthropic API呼び出し（service worker経由）
     const result = await chrome.runtime.sendMessage({
       type: 'CALL_ANTHROPIC',
-      payload: { apiKey, systemPrompt, userPrompt },
+      payload: { apiKey, systemPrompt, userPrompt, modelId },
     });
 
     if (!result.ok) throw new Error(result.error);
@@ -109,10 +119,32 @@ async function onReviewClick() {
 
 // ===== プロンプト構築 =====
 
-function buildPrompts(meta, diffData) {
-  const systemPrompt = `You are an expert code reviewer with deep knowledge of software engineering best practices, security vulnerabilities, and performance optimization.
+function buildPrompts(meta, diffData, preScanBlock = '') {
+  const systemPrompt = `You are a security-focused code reviewer. Your PRIMARY job is to find bugs and security vulnerabilities. Do not get distracted by style or architecture.
 
-Review the GitHub Pull Request diff and return ONLY a JSON object (no markdown, no explanation outside the JSON):
+IMPORTANT CONTEXT — Read before reviewing:
+- This may be a Chrome Extension using BYOK (Bring Your Own Key) architecture. In BYOK extensions, users provide their own API keys stored locally (e.g., chrome.storage.local). Direct browser API calls with user-provided keys are INTENTIONAL and expected — do NOT flag these as security issues.
+- The Anthropic header 'anthropic-dangerous-direct-browser-access' is an official header required for legitimate BYOK browser extensions — do NOT flag it.
+- Focus on bugs that affect real users, not architectural patterns that are intentional design choices.
+
+STEP 1 — SECURITY SCAN (mandatory, check every function):
+Go through every added/modified line and check for:
+- XSS: innerHTML, document.write, eval, setTimeout(string)
+- Injection: SQL/shell/template string injection
+- Secrets: API keys, passwords, tokens hardcoded
+- Auth bypass: missing auth checks, insecure direct object refs
+- Prototype pollution, ReDoS, path traversal
+- Zero-division, null dereference, off-by-one
+
+STEP 2 — LOGIC BUGS:
+- Missing error handling
+- Incorrect conditionals, edge cases (empty array, 0, null)
+- Race conditions, async issues
+
+STEP 3 — ONLY IF no critical/high issues remain:
+- Code quality, performance, maintainability
+
+Return ONLY this JSON (no markdown, no text outside JSON):
 {
   "summary": "1-2 sentence overview of what this PR does",
   "severity": "low|medium|high|critical",
@@ -120,24 +152,17 @@ Review the GitHub Pull Request diff and return ONLY a JSON object (no markdown, 
     {
       "severity": "critical|high|medium|low|info",
       "file": "path/to/file",
-      "line_hint": "approximate line or function name",
+      "line_hint": "function name or line content",
       "title": "Short issue title",
-      "description": "Detailed explanation",
-      "suggestion": "Specific fix or improvement"
+      "description": "Exact explanation of the vulnerability or bug",
+      "suggestion": "Concrete fix with example code if possible"
     }
   ],
-  "positives": ["Good aspect 1", "Good aspect 2"],
+  "positives": ["Good aspect 1"],
   "overall_recommendation": "approve|request_changes|comment"
 }
 
-Review priorities (in order):
-1. Security vulnerabilities (SQL injection, XSS, auth bypass, secrets in code)
-2. Logic bugs and edge cases
-3. Performance issues
-4. Code quality and maintainability
-5. Missing error handling
-
-Respond in Japanese.`;
+Respond in Japanese. If you find a security vulnerability, always mark it critical or high — never downgrade security issues.`;
 
   const diffText = diffData
     .map(({ filePath, diff }) =>
@@ -145,15 +170,22 @@ Respond in Japanese.`;
     )
     .join('\n\n');
 
+  const fileList = diffData.map(d => `- ${d.filePath}`).join('\n');
+
   const userPrompt = `## Pull Request: ${meta.title}
 
 ## Description:
 ${meta.description || '(No description provided)'}
 
-## Changed Files:
+## Files changed in this PR (review ALL of them):
+${fileList}
+${preScanBlock ? `\n${preScanBlock}\n` : ''}
+## Diffs:
 ${diffText}
 
-Please review the above diff and return your JSON analysis.`;
+IMPORTANT: You must check every file listed above. Do not skip any file. Start with a security scan of each function before anything else.
+
+Return your JSON analysis.`;
 
   return { systemPrompt, userPrompt };
 }

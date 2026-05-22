@@ -10,10 +10,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-async function callAnthropicAPI({ apiKey, systemPrompt, userPrompt }) {
+const FALLBACK_MODEL = 'claude-haiku-4-5';
+
+async function callAnthropicAPI({ apiKey, systemPrompt, userPrompt, modelId }) {
   if (!apiKey) {
     throw new Error('Anthropic API key is not set. Please add it in the extension popup.');
   }
+
+  const model = modelId || FALLBACK_MODEL;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -21,9 +25,10 @@ async function callAnthropicAPI({ apiKey, systemPrompt, userPrompt }) {
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: 'claude-3-5-haiku-20241022',
+      model,
       max_tokens: 4096,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
@@ -31,18 +36,13 @@ async function callAnthropicAPI({ apiKey, systemPrompt, userPrompt }) {
   });
 
   if (!response.ok) {
-    let errMsg = `HTTP ${response.status}`;
-    try {
-      const errData = await response.json();
-      errMsg = errData.error?.message ?? errMsg;
-    } catch { /* ignore */ }
+    let errData = {};
+    try { errData = await response.json(); } catch { /* ignore */ }
 
-    if (response.status === 401) {
-      throw new Error('Invalid API key. Please check your Anthropic API key in the popup.');
-    }
-    if (response.status === 429) {
-      throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-    }
+    const errMsg = errData.error?.message ?? `HTTP ${response.status}`;
+
+    if (response.status === 401) throw new Error('Invalid API key. Please check your Anthropic API key in the popup.');
+    if (response.status === 429) throw new Error('Rate limit exceeded. Please wait a moment and try again.');
     throw new Error(`Anthropic API error: ${errMsg}`);
   }
 

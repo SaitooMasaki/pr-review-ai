@@ -24,21 +24,32 @@
     <!-- Anthropic APIキー -->
     <div class="section">
       <label class="section-label">Anthropic API Key</label>
-      <div class="input-row">
-        <input
-          type="password"
-          id="api-key-input"
-          class="text-input"
-          placeholder="sk-ant-api03-..."
-          autocomplete="off"
-        />
-        <button id="toggle-key-visibility" class="icon-btn" title="Show/Hide">👁</button>
+
+      <!-- 保存済み表示 -->
+      <div id="api-key-saved-row" class="key-saved-row hidden">
+        <span class="key-saved-label">✅ API key saved</span>
+        <button id="change-api-key" class="btn btn-secondary btn-sm">Change</button>
       </div>
-      <p class="section-hint">
-        Your key is stored locally and only sent to
-        <a href="https://api.anthropic.com" target="_blank">api.anthropic.com</a>.
-      </p>
-      <button id="save-api-key" class="btn btn-primary">Save</button>
+
+      <!-- 入力フォーム -->
+      <div id="api-key-input-row">
+        <div class="input-row">
+          <input
+            type="password"
+            id="api-key-input"
+            class="text-input"
+            placeholder="sk-ant-api03-..."
+            autocomplete="off"
+          />
+          <button id="toggle-key-visibility" class="icon-btn" title="Show/Hide">👁</button>
+        </div>
+        <p class="section-hint">
+          Stored locally. Only sent to
+          <a href="https://api.anthropic.com" target="_blank">api.anthropic.com</a>.
+        </p>
+        <button id="save-api-key" class="btn btn-primary">Save</button>
+      </div>
+
       <p id="api-key-status" class="status-msg"></p>
     </div>
 
@@ -96,8 +107,29 @@
       </select>
     </div>
 
+    <div class="section">
+      <label class="section-label">AI Model</label>
+      <div class="model-cards">
+        <label class="model-card" id="card-haiku">
+          <input type="radio" name="model" value="haiku" />
+          <div class="model-card-body">
+            <span class="model-card-title">⚡ Haiku</span>
+            <span class="model-card-desc">Fast &amp; cheap · Good for most PRs</span>
+          </div>
+        </label>
+        <label class="model-card" id="card-sonnet">
+          <input type="radio" name="model" value="sonnet" />
+          <div class="model-card-body">
+            <span class="model-card-title">🎯 Sonnet</span>
+            <span class="model-card-desc">Precise · Best for security reviews</span>
+          </div>
+        </label>
+      </div>
+      <p class="section-hint" id="model-hint"></p>
+    </div>
+
   </div>
 
-  <script type="module" src="popup.js"></script>
+  <script src="../../dist/popup.js"></script>
 </body>
 </html>

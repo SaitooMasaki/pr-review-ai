@@ -1,34 +1,30 @@
-import { SELECTORS, querySelector, FREE_LIMIT } from '../shared/constants.js';
+import { FREE_LIMIT } from '../shared/constants.js';
 import { canUseReview } from '../shared/counter.js';
 
 const BUTTON_ID = 'ai-review-btn';
 const PANEL_ID  = 'ai-review-panel';
 const BODY_ID   = 'ai-review-panel-body';
 
-// ===== ボタン =====
+// ===== フローティングボタン（DOM依存なし・確実に表示） =====
 
 export function injectReviewButton(onClickCallback) {
   if (document.getElementById(BUTTON_ID)) return;
 
-  const toolbar = querySelector(SELECTORS.PR_TOOLBAR);
-  if (!toolbar) {
-    console.warn('[PR Review AI] Toolbar not found. Will retry on next mutation.');
-    return;
-  }
-
   const btn = document.createElement('button');
   btn.id = BUTTON_ID;
-  btn.className = 'ai-review-trigger-btn';
+  btn.className = 'ai-review-fab';
+  btn.title = 'AI Code Review';
   btn.innerHTML = `
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M12 8v4l3 3"/>
-    </svg>
-    AI Review
+    <span class="ai-fab-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+      </svg>
+    </span>
+    <span class="ai-fab-label">AI Review</span>
     <span id="ai-review-badge" class="ai-review-badge"></span>
   `;
   btn.addEventListener('click', onClickCallback);
-  toolbar.appendChild(btn);
+  document.body.appendChild(btn);
 
   updateBadge();
 }
@@ -41,18 +37,10 @@ export function setButtonLoading(isLoading) {
   const btn = document.getElementById(BUTTON_ID);
   if (!btn) return;
   btn.disabled = isLoading;
-  btn.classList.toggle('ai-btn-loading', isLoading);
+  btn.classList.toggle('ai-fab-loading', isLoading);
 
-  const svg = btn.querySelector('svg');
-  if (svg) svg.style.display = isLoading ? 'none' : '';
-
-  // テキストノードを更新（バッジは残す）
-  const badge = document.getElementById('ai-review-badge');
-  const text  = isLoading ? ' Analyzing…' : ' AI Review';
-  btn.childNodes.forEach(node => {
-    if (node.nodeType === Node.TEXT_NODE) node.textContent = text;
-  });
-  if (badge) btn.appendChild(badge);
+  const label = btn.querySelector('.ai-fab-label');
+  if (label) label.textContent = isLoading ? 'Analyzing…' : 'AI Review';
 }
 
 export async function updateBadge() {
@@ -81,8 +69,7 @@ export function injectSidePanel() {
     <div class="ai-panel-header">
       <div class="ai-panel-title">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 8v4l3 3"/>
+          <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
         </svg>
         AI Code Review
       </div>
@@ -95,8 +82,6 @@ export function injectSidePanel() {
   `;
 
   document.body.appendChild(panel);
-
-  // GitHubのdiffエリアを左に寄せる
   document.querySelector('#files')?.classList.add('ai-review-active');
 
   document.getElementById('ai-panel-close').addEventListener('click', closeSidePanel);
@@ -131,9 +116,9 @@ function copyReviewText() {
   });
 }
 
-// ===== 制限到達ダイアログ =====
+// ===== 制限到達トースト =====
 
-export function showUpgradePrompt(remaining) {
+export function showUpgradePrompt() {
   const existing = document.getElementById('ai-upgrade-toast');
   if (existing) existing.remove();
 
