@@ -10,8 +10,6 @@ export function extractDiff() {
     ...document.querySelectorAll('[class*="PullRequestDiffsList-module_diffEntry_"]'),
   ];
 
-  console.log('[PR Review AI] File entries found:', fileEntries.length);
-
   if (fileEntries.length > 0) {
     for (const entry of fileEntries) {
       const filePath = getFilePath(entry);
@@ -23,15 +21,12 @@ export function extractDiff() {
     }
   } else {
     // フォールバック: ページ全体の diff-line-row を取得（ファイル区別なし）
-    const allRows = document.querySelectorAll('.diff-line-row');
-    console.log('[PR Review AI] Fallback – diff-line-row count:', allRows.length);
-    const lines = extractLines(allRows);
+    const lines = extractLines(document.querySelectorAll('.diff-line-row'));
     if (lines.length > 0) {
       diffData.push({ filePath: '(all files)', diff: lines.join('\n') });
     }
   }
 
-  console.log('[PR Review AI] Diff files extracted:', diffData.length);
   return diffData;
 }
 
@@ -51,10 +46,10 @@ function getFilePath(container) {
     if (text) return text;
   }
 
-  // /blob/ を含むリンクからパスを抽出
+  // /blob/ を含むリンクからパスを抽出（#フラグメントを除去）
   const link = container.querySelector('a[href*="/blob/"]');
   if (link) {
-    const match = link.href.match(/\/blob\/[^/]+\/(.+)/);
+    const match = link.href.match(/\/blob\/[^/]+\/([^#]+)/);
     if (match) return match[1];
   }
 
