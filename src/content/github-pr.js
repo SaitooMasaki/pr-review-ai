@@ -2,6 +2,7 @@
 // GitHub PRページ（/*/pull/*）に注入される
 
 import { extractDiff, extractPRMeta, truncateDiff } from './diff-extractor.js';
+import { preScan, buildPreScanBlock } from './security-prescanner.js';
 import {
   injectReviewButton,
   injectSidePanel,
@@ -87,8 +88,12 @@ async function onReviewClick() {
       return;
     }
 
+    // 静的プリスキャン（AIに渡す前に危険パターンを機械的に検出）
+    const preScanFindings = preScan(diffData);
+    const preScanBlock    = buildPreScanBlock(preScanFindings);
+
     // プロンプト構築（ファイルリストを明示して見落とし防止）
-    const { systemPrompt, userPrompt } = buildPrompts(meta, diffData);
+    const { systemPrompt, userPrompt } = buildPrompts(meta, diffData, preScanBlock);
 
     // Anthropic API呼び出し（service worker経由）
     const result = await chrome.runtime.sendMessage({
@@ -114,7 +119,7 @@ async function onReviewClick() {
 
 // ===== プロンプト構築 =====
 
-function buildPrompts(meta, diffData) {
+function buildPrompts(meta, diffData, preScanBlock = '') {
   const systemPrompt = `You are a security-focused code reviewer. Your PRIMARY job is to find bugs and security vulnerabilities. Do not get distracted by style or architecture.
 
 IMPORTANT CONTEXT — Read before reviewing:
@@ -174,7 +179,7 @@ ${meta.description || '(No description provided)'}
 
 ## Files changed in this PR (review ALL of them):
 ${fileList}
-
+${preScanBlock ? `\n${preScanBlock}\n` : ''}
 ## Diffs:
 ${diffText}
 
