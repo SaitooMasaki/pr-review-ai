@@ -1,0 +1,12 @@
+{
+  "name": "pr-review-ai",
+  "version": "1.0.0",
+  "description": "AI-powered code review for GitHub Pull Requests",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}

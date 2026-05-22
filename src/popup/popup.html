@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PR Review AI</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="popup-container">
+
+    <!-- ヘッダー -->
+    <div class="popup-header">
+      <div class="popup-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v4l3 3"/>
+        </svg>
+        PR Review AI
+      </div>
+      <span id="version-label" class="version-label">v1.0</span>
+    </div>
+
+    <!-- Anthropic APIキー -->
+    <div class="section">
+      <label class="section-label">Anthropic API Key</label>
+      <div class="input-row">
+        <input
+          type="password"
+          id="api-key-input"
+          class="text-input"
+          placeholder="sk-ant-api03-..."
+          autocomplete="off"
+        />
+        <button id="toggle-key-visibility" class="icon-btn" title="Show/Hide">👁</button>
+      </div>
+      <p class="section-hint">
+        Your key is stored locally and only sent to
+        <a href="https://api.anthropic.com" target="_blank">api.anthropic.com</a>.
+      </p>
+      <button id="save-api-key" class="btn btn-primary">Save</button>
+      <p id="api-key-status" class="status-msg"></p>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- プランと制限 -->
+    <div class="section">
+      <div class="plan-row">
+        <span class="plan-label">Plan:</span>
+        <span id="plan-badge" class="badge badge-free">Free</span>
+        <span id="usage-label" class="usage-label"></span>
+      </div>
+    </div>
+
+    <!-- ライセンスキー -->
+    <div class="section">
+      <label class="section-label">License Key</label>
+      <div class="input-row">
+        <input
+          type="text"
+          id="license-key-input"
+          class="text-input"
+          placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+          autocomplete="off"
+        />
+      </div>
+      <div class="btn-row">
+        <button id="activate-btn" class="btn btn-primary">Activate</button>
+        <button id="deactivate-btn" class="btn btn-secondary hidden">Deactivate</button>
+      </div>
+      <p id="license-status" class="status-msg"></p>
+    </div>
+
+    <!-- アップグレードリンク -->
+    <div id="upgrade-bar" class="upgrade-bar">
+      <p>Upgrade to <strong>Pro</strong> for unlimited reviews</p>
+      <a
+        id="upgrade-link"
+        href="https://saitoomasaki.lemonsqueezy.com"
+        target="_blank"
+        class="btn btn-upgrade"
+      >
+        Get Pro → $9/mo
+      </a>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- 設定 -->
+    <div class="section">
+      <label class="section-label">Review Language</label>
+      <select id="language-select" class="select-input">
+        <option value="Japanese">日本語</option>
+        <option value="English">English</option>
+      </select>
+    </div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

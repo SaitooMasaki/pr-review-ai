@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "PR Review AI",
+  "version": "1.0.0",
+  "description": "AI-powered code review for GitHub Pull Requests. Uses your own Anthropic API key — your code never touches our servers.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://github.com/*",
+    "https://api.anthropic.com/*",
+    "https://api.lemonsqueezy.com/*"
+  ],
+  "background": {
+    "service_worker": "dist/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*/pull/*"],
+      "js": ["dist/github-pr.js"],
+      "css": ["dist/panel.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
