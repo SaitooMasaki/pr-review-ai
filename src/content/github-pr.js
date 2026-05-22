@@ -78,11 +78,14 @@ async function onReviewClick() {
     const meta     = extractPRMeta();
 
     if (diffData.length === 0) {
-      renderError(panelBody, 'No diff found. Make sure the "Files changed" tab is visible and files are expanded.');
+      const hint = location.href.includes('/files')
+        ? 'Files are collapsed — click "Load diff" or expand each file, then try again.'
+        : 'Please click the "Files changed" tab first, then click AI Review.';
+      renderError(panelBody, `No diff found. ${hint}`);
       return;
     }
 
-    // プロンプト構築
+    // プロンプト構築（ファイルリストを明示して見落とし防止）
     const { systemPrompt, userPrompt } = buildPrompts(meta, diffData);
 
     // Anthropic API呼び出し（service worker経由）
@@ -110,9 +113,26 @@ async function onReviewClick() {
 // ===== プロンプト構築 =====
 
 function buildPrompts(meta, diffData) {
-  const systemPrompt = `You are an expert code reviewer with deep knowledge of software engineering best practices, security vulnerabilities, and performance optimization.
+  const systemPrompt = `You are a security-focused code reviewer. Your PRIMARY job is to find bugs and security vulnerabilities. Do not get distracted by style or architecture.
 
-Review the GitHub Pull Request diff and return ONLY a JSON object (no markdown, no explanation outside the JSON):
+STEP 1 — SECURITY SCAN (mandatory, check every function):
+Go through every added/modified line and check for:
+- XSS: innerHTML, document.write, eval, setTimeout(string)
+- Injection: SQL/shell/template string injection
+- Secrets: API keys, passwords, tokens hardcoded
+- Auth bypass: missing auth checks, insecure direct object refs
+- Prototype pollution, ReDoS, path traversal
+- Zero-division, null dereference, off-by-one
+
+STEP 2 — LOGIC BUGS:
+- Missing error handling
+- Incorrect conditionals, edge cases (empty array, 0, null)
+- Race conditions, async issues
+
+STEP 3 — ONLY IF no critical/high issues remain:
+- Code quality, performance, maintainability
+
+Return ONLY this JSON (no markdown, no text outside JSON):
 {
   "summary": "1-2 sentence overview of what this PR does",
   "severity": "low|medium|high|critical",
@@ -120,24 +140,17 @@ Review the GitHub Pull Request diff and return ONLY a JSON object (no markdown, 
     {
       "severity": "critical|high|medium|low|info",
       "file": "path/to/file",
-      "line_hint": "approximate line or function name",
+      "line_hint": "function name or line content",
       "title": "Short issue title",
-      "description": "Detailed explanation",
-      "suggestion": "Specific fix or improvement"
+      "description": "Exact explanation of the vulnerability or bug",
+      "suggestion": "Concrete fix with example code if possible"
     }
   ],
-  "positives": ["Good aspect 1", "Good aspect 2"],
+  "positives": ["Good aspect 1"],
   "overall_recommendation": "approve|request_changes|comment"
 }
 
-Review priorities (in order):
-1. Security vulnerabilities (SQL injection, XSS, auth bypass, secrets in code)
-2. Logic bugs and edge cases
-3. Performance issues
-4. Code quality and maintainability
-5. Missing error handling
-
-Respond in Japanese.`;
+Respond in Japanese. If you find a security vulnerability, always mark it critical or high — never downgrade security issues.`;
 
   const diffText = diffData
     .map(({ filePath, diff }) =>
@@ -145,15 +158,22 @@ Respond in Japanese.`;
     )
     .join('\n\n');
 
+  const fileList = diffData.map(d => `- ${d.filePath}`).join('\n');
+
   const userPrompt = `## Pull Request: ${meta.title}
 
 ## Description:
 ${meta.description || '(No description provided)'}
 
-## Changed Files:
+## Files changed in this PR (review ALL of them):
+${fileList}
+
+## Diffs:
 ${diffText}
 
-Please review the above diff and return your JSON analysis.`;
+IMPORTANT: You must check every file listed above. Do not skip any file. Start with a security scan of each function before anything else.
+
+Return your JSON analysis.`;
 
   return { systemPrompt, userPrompt };
 }
