@@ -19,13 +19,11 @@ export function renderReview(rawText, panelBodyEl) {
   let parsed = null;
 
   try {
-    // ```json ... ``` ブロックを抽出（モデルがコードブロックで返す場合がある）
-    const jsonMatch =
-      rawText.match(/```json\s*([\s\S]*?)\s*```/) ??
-      rawText.match(/```\s*([\s\S]*?)\s*```/) ??
-      rawText.match(/(\{[\s\S]*\})/);
-
-    parsed = JSON.parse(jsonMatch ? jsonMatch[1] : rawText);
+    // 最初の { から最後の } を取り出してパース（ネストしたコードブロックに対応）
+    const start = rawText.indexOf('{');
+    const end   = rawText.lastIndexOf('}');
+    if (start === -1 || end === -1 || end <= start) throw new Error('No JSON found');
+    parsed = JSON.parse(rawText.slice(start, end + 1));
   } catch {
     // パース失敗時はプレーンテキストで表示
     panelBodyEl.innerHTML = `
