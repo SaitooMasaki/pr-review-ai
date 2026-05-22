@@ -20,7 +20,7 @@ export const LS_PRODUCT_ID = null; // TODO: Lemon Squeezy product ID を設定
 export const LEMON_SQUEEZY_CHECKOUT_URL =
   'https://saitoomasaki.lemonsqueezy.com/checkout/buy/YOUR_PRODUCT_ID'; // TODO: 更新
 
-export const ANTHROPIC_MODEL = 'claude-3-5-haiku-20241022';
+export const ANTHROPIC_MODEL = 'claude-haiku-4-5';
 export const ANTHROPIC_MAX_TOKENS = 4096;
 
 // GitHub DOM セレクタ（変更リスクが高いので複数フォールバック定義）
