@@ -1,6 +1,6 @@
 // Lemon Squeezy License Key 検証（AIPrompterから流用・改修）
 
-import { STORAGE_KEYS } from './constants.js';
+import { STORAGE_KEYS, OWNER_KEY } from './constants.js';
 import { storageGet, storageSet } from './storage.js';
 
 const LS_VALIDATE_URL = 'https://api.lemonsqueezy.com/v1/licenses/validate';
@@ -9,6 +9,20 @@ const CACHE_HOURS = 24;
 // ライセンスキーを検証してステータスを返す
 export async function validateLicenseKey(licenseKey) {
   if (!licenseKey || !licenseKey.trim()) return 'invalid';
+
+  // オーナーキーは Lemon Squeezy を呼ばずに即 Pro 付与
+  if (licenseKey.trim() === OWNER_KEY) {
+    await storageSet({
+      [STORAGE_KEYS.LICENSE_KEY]:    licenseKey.trim(),
+      [STORAGE_KEYS.LICENSE_STATUS]: 'pro',
+      [STORAGE_KEYS.LICENSE_CACHE]:  {
+        key:         licenseKey.trim(),
+        validatedAt: new Date().toISOString(),
+        status:      'pro',
+      },
+    });
+    return 'pro';
+  }
 
   // キャッシュ確認（24時間以内なら再検証しない）
   const cached = await getCachedStatus(licenseKey);

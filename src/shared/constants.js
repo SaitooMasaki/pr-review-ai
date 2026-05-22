@@ -17,6 +17,9 @@ export const FREE_LIMIT = 3;
 
 export const LS_PRODUCT_ID = null; // TODO: Lemon Squeezy product ID を設定
 
+// 開発者・オーナー専用キー（Lemon Squeezy 未設定でも Pro として動作）
+export const OWNER_KEY = 'OWNER-PR-REVIEW-AI-2026-MASAKI';
+
 export const LEMON_SQUEEZY_CHECKOUT_URL =
   'https://saitoomasaki.lemonsqueezy.com/checkout/buy/YOUR_PRODUCT_ID'; // TODO: 更新
 
