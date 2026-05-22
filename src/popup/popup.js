@@ -20,9 +20,9 @@ async function loadAll() {
     STORAGE_KEYS.SETTINGS,
   ]);
 
-  // APIキー
+  // APIキー：保存済みなら入力欄を隠して「保存済み」表示にする
   const apiKey = data[STORAGE_KEYS.API_KEY] ?? '';
-  document.getElementById('api-key-input').value = apiKey ? maskKey(apiKey) : '';
+  setApiKeyUIMode(apiKey ? 'saved' : 'input');
 
   // ライセンス
   const licenseKey    = data[STORAGE_KEYS.LICENSE_KEY]    ?? '';
@@ -54,6 +54,13 @@ function bindEvents() {
     input.type = input.type === 'password' ? 'text' : 'password';
   });
 
+  // APIキー変更ボタン
+  document.getElementById('change-api-key').addEventListener('click', () => {
+    document.getElementById('api-key-input').value = '';
+    setApiKeyUIMode('input');
+    document.getElementById('api-key-input').focus();
+  });
+
   // ライセンス認証
   document.getElementById('activate-btn').addEventListener('click', activateLicense);
 
@@ -78,15 +85,30 @@ function bindEvents() {
 
 async function saveApiKey() {
   const raw = document.getElementById('api-key-input').value.trim();
-  if (!raw || raw.startsWith('sk-ant-***')) {
+
+  // 空・マスク済み・短すぎるキーをはじく
+  if (!raw || raw.includes('***') || raw.length < 20) {
     showStatus('api-key-status', 'Please enter a valid API key.', 'error');
     return;
   }
 
   await storageSet({ [STORAGE_KEYS.API_KEY]: raw });
-  document.getElementById('api-key-input').value = maskKey(raw);
-  document.getElementById('api-key-input').type = 'password';
+  document.getElementById('api-key-input').value = '';
+  setApiKeyUIMode('saved');
   showStatus('api-key-status', '✅ Saved!', 'success');
+}
+
+// APIキーUIの表示モードを切り替える
+function setApiKeyUIMode(mode) {
+  const savedRow  = document.getElementById('api-key-saved-row');
+  const inputRow  = document.getElementById('api-key-input-row');
+  if (mode === 'saved') {
+    savedRow.classList.remove('hidden');
+    inputRow.classList.add('hidden');
+  } else {
+    savedRow.classList.add('hidden');
+    inputRow.classList.remove('hidden');
+  }
 }
 
 // ===== ライセンス認証 =====

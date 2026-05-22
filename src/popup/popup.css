@@ -151,3 +151,17 @@ body {
 
 /* 区切り線 */
 .divider { border: none; border-top: 1px solid #21262d; margin: 10px 0; }
+
+/* APIキー保存済み行 */
+.key-saved-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #161b22;
+  border: 1px solid #238636;
+  border-radius: 6px;
+  padding: 7px 10px;
+  margin-bottom: 4px;
+}
+.key-saved-label { color: #3fb950; font-size: 12px; font-weight: 600; }
+.btn-sm { padding: 3px 10px; font-size: 11px; margin-top: 0; }
