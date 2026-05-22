@@ -115,6 +115,11 @@ async function onReviewClick() {
 function buildPrompts(meta, diffData) {
   const systemPrompt = `You are a security-focused code reviewer. Your PRIMARY job is to find bugs and security vulnerabilities. Do not get distracted by style or architecture.
 
+IMPORTANT CONTEXT — Read before reviewing:
+- This may be a Chrome Extension using BYOK (Bring Your Own Key) architecture. In BYOK extensions, users provide their own API keys stored locally (e.g., chrome.storage.local). Direct browser API calls with user-provided keys are INTENTIONAL and expected — do NOT flag these as security issues.
+- The Anthropic header 'anthropic-dangerous-direct-browser-access' is an official header required for legitimate BYOK browser extensions — do NOT flag it.
+- Focus on bugs that affect real users, not architectural patterns that are intentional design choices.
+
 STEP 1 — SECURITY SCAN (mandatory, check every function):
 Go through every added/modified line and check for:
 - XSS: innerHTML, document.write, eval, setTimeout(string)
